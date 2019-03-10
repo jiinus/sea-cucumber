@@ -10,6 +10,7 @@ from celery.task import Task
 from boto.ses.exceptions import SESAddressBlacklistedError, SESDomainEndsWithDotError, SESLocalAddressCharacterError, SESIllegalAddressError
 
 from seacucumber.util import get_boto_ses_connection, dkim_sign
+from seacucumber import signals
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +26,7 @@ class SendEmailTask(Task):
         # A boto.ses.SESConnection object, after running _open_ses_conn().
         self.connection = None
 
-    def run(self, from_email, recipients, message):
+    def run(self, from_email, recipients, message, message_id):
         """
         This does the dirty work. Connects to Amazon SES via boto and fires
         off the message.
@@ -41,7 +42,7 @@ class SendEmailTask(Task):
             # We use the send_raw_email func here because the Django
             # EmailMessage object we got these values from constructs all of
             # the headers and such.
-            self.connection.send_raw_email(
+            ses_response = self.connection.send_raw_email(
                 source=from_email,
                 destinations=recipients,
                 raw_message=dkim_sign(message),
@@ -56,6 +57,7 @@ class SendEmailTask(Task):
                 exc_info=exc,
                 extra={'trace': True}
             )
+            signals.message_sending_failed.send(old_message_id=message_id, reason='Attempted to email a blacklisted user: %s' % recipients)
             return False
         except SESDomainEndsWithDotError, exc:
             # Domains ending in a dot are simply invalid.
@@ -64,6 +66,7 @@ class SendEmailTask(Task):
                 exc_info=exc,
                 extra={'trace': True}
             )
+            signals.message_sending_failed.send(old_message_id=message_id, reason='Invalid recipient, ending in dot: %s' % recipients)
             return False
         except SESLocalAddressCharacterError, exc:
             # Invalid character, usually in the sender "name".
@@ -72,6 +75,7 @@ class SendEmailTask(Task):
                 exc_info=exc,
                 extra={'trace': True}
             )
+            signals.message_sending_failed.send(old_message_id=message_id, reason='Local address contains control or whitespace: %s' % recipients)
             return False
         except SESIllegalAddressError, exc:
             # A clearly mal-formed address.
@@ -80,6 +84,7 @@ class SendEmailTask(Task):
                 exc_info=exc,
                 extra={'trace': True}
             )
+            signals.message_sending_failed.send(old_message_id=message_id, reason='Illegal address: %s' % recipients)
             return False
         except Exception, exc:
             # Something else happened that we haven't explicitly forbade
@@ -93,6 +98,10 @@ class SendEmailTask(Task):
             self.retry(exc=exc)
         else:
             logger.info('An email has been successfully sent: %s' % recipients)
+
+            # Send signal with the result message ID
+            new_message_id = ses_response.get('Message-ID')
+            signals.message_sent.send(old_message_id=message_id, new_message_id=new_message_id)
 
         # We shouldn't ever block long enough to see this, but here it is
         # just in case (for debugging?).

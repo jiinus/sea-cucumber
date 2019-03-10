@@ -16,7 +16,7 @@ CLASSIFIERS = [
 
 setup(
     name='seacucumber',
-    version='1.5.2',
+    version='1.5.3',
     packages=[
         'seacucumber',
         'seacucumber.management',
