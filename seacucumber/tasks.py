@@ -104,7 +104,12 @@ class SendEmailTask(Task):
             logger.info('An email has been successfully sent: %s' % recipients)
 
             # Send signal with the result message ID
-            new_message_id = ses_response.get('Message-ID')
+            try:
+                raw_message_id = ses_response['SendRawEmailResponse']['SendRawEmailResult']['MessageId']
+                new_message_id = u'<%s@%s.amazonses.com>' % (self.connection.region_name, raw_message_id)
+            except KeyError:
+                new_message_id = None
+
             signals.message_sent.send(sender=self.__class__, old_message_id=message_id, new_message_id=new_message_id)
 
         # We shouldn't ever block long enough to see this, but here it is
