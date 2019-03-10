@@ -57,7 +57,7 @@ class SendEmailTask(Task):
                 exc_info=exc,
                 extra={'trace': True}
             )
-            signals.message_sending_failed.send(old_message_id=message_id, reason='Attempted to email a blacklisted user: %s' % recipients)
+            signals.message_sending_failed.send(sender=self.__class__, old_message_id=message_id, reason='Attempted to email a blacklisted user: %s' % recipients)
             return False
         except SESDomainEndsWithDotError, exc:
             # Domains ending in a dot are simply invalid.
@@ -66,7 +66,7 @@ class SendEmailTask(Task):
                 exc_info=exc,
                 extra={'trace': True}
             )
-            signals.message_sending_failed.send(old_message_id=message_id, reason='Invalid recipient, ending in dot: %s' % recipients)
+            signals.message_sending_failed.send(sender=self.__class__, old_message_id=message_id, reason='Invalid recipient, ending in dot: %s' % recipients)
             return False
         except SESLocalAddressCharacterError, exc:
             # Invalid character, usually in the sender "name".
@@ -75,7 +75,7 @@ class SendEmailTask(Task):
                 exc_info=exc,
                 extra={'trace': True}
             )
-            signals.message_sending_failed.send(old_message_id=message_id, reason='Local address contains control or whitespace: %s' % recipients)
+            signals.message_sending_failed.send(sender=self.__class__, old_message_id=message_id, reason='Local address contains control or whitespace: %s' % recipients)
             return False
         except SESIllegalAddressError, exc:
             # A clearly mal-formed address.
@@ -84,7 +84,7 @@ class SendEmailTask(Task):
                 exc_info=exc,
                 extra={'trace': True}
             )
-            signals.message_sending_failed.send(old_message_id=message_id, reason='Illegal address: %s' % recipients)
+            signals.message_sending_failed.send(sender=self.__class__, old_message_id=message_id, reason='Illegal address: %s' % recipients)
             return False
         except Exception, exc:
             # Something else happened that we haven't explicitly forbade
@@ -101,7 +101,7 @@ class SendEmailTask(Task):
 
             # Send signal with the result message ID
             new_message_id = ses_response.get('Message-ID')
-            signals.message_sent.send(old_message_id=message_id, new_message_id=new_message_id)
+            signals.message_sent.send(sender=self.__class__, old_message_id=message_id, new_message_id=new_message_id)
 
         # We shouldn't ever block long enough to see this, but here it is
         # just in case (for debugging?).
