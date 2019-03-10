@@ -31,17 +31,12 @@ class SESBackend(BaseEmailBackend):
         queue = getattr(settings, 'CUCUMBER_ROUTE_QUEUE', '')
         num_sent = 0
         for message in email_messages:
-
-            print 'message data:', message.__dict__
-            message_id = message.extra_headers.get('Message-ID', None)
-            print '--- message_id:', message_id
-
             # Hand this off to a celery task.
             SendEmailTask.apply_async(args=[
                     message.from_email,
                     message.recipients(),
                     message.message().as_string().decode('utf8'),
-                    message_id],
+                    message.extra_headers.get('Message-ID', None)],
                 queue=queue,
             )
             num_sent += 1

@@ -47,9 +47,6 @@ class SendEmailTask(Task):
                 destinations=recipients,
                 raw_message=dkim_sign(message),
             )
-
-            print 'ses_response:', ses_response
-
         except SESAddressBlacklistedError, exc:
             # Blacklisted users are those which delivery failed for in the
             # last 24 hours. They'll eventually be automatically removed from
@@ -106,9 +103,7 @@ class SendEmailTask(Task):
             # Send signal with the result message ID
             try:
                 raw_message_id = ses_response['SendRawEmailResponse']['SendRawEmailResult']['MessageId']
-                print '--- raw_message_id:', raw_message_id
                 new_message_id = u'<%s@%s.amazonses.com>' % (raw_message_id, self.connection.region.name)
-                print '--- new_message_id:', new_message_id
             except KeyError:
                 new_message_id = None
 
