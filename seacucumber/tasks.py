@@ -95,6 +95,7 @@ class SendEmailTask(Task):
                 exc_info=exc,
                 extra={'trace': True}
             )
+            signals.message_sending_failed.send(sender=self.__class__, old_message_id=message_id, error_code='UNKNOWN_ERROR', reason=unicode(exc))
             self.retry(exc=exc)
         else:
             logger.info('An email has been successfully sent: %s' % recipients)
