@@ -106,7 +106,9 @@ class SendEmailTask(Task):
             # Send signal with the result message ID
             try:
                 raw_message_id = ses_response['SendRawEmailResponse']['SendRawEmailResult']['MessageId']
-                new_message_id = u'<%s@%s.amazonses.com>' % (self.connection.region.name, raw_message_id)
+                print '--- raw_message_id:', raw_message_id
+                new_message_id = u'<%s@%s.amazonses.com>' % (raw_message_id, self.connection.region.name)
+                print '--- new_message_id:', new_message_id
             except KeyError:
                 new_message_id = None
 
