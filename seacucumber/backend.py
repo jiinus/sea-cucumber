@@ -33,7 +33,7 @@ class SESBackend(BaseEmailBackend):
         for message in email_messages:
 
             print 'message data:', message.__dict__
-            message_id = message.extra_headers.get('Message-Id', None)
+            message_id = message.extra_headers.get('Message-ID', None)
             print '--- message_id:', message_id
 
             # Hand this off to a celery task.
