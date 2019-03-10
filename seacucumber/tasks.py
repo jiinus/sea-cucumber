@@ -47,6 +47,9 @@ class SendEmailTask(Task):
                 destinations=recipients,
                 raw_message=dkim_sign(message),
             )
+
+            print 'ses_response:', ses_response
+
         except SESAddressBlacklistedError, exc:
             # Blacklisted users are those which delivery failed for in the
             # last 24 hours. They'll eventually be automatically removed from
