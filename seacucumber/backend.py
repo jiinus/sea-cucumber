@@ -33,7 +33,7 @@ class SESBackend(BaseEmailBackend):
         for message in email_messages:
 
             message_id = message.extra_headers.get('Message-ID', None)
-            message_sending.send(sender=self.__class__, message_id=message_id, message)
+            message_sending.send(sender=self.__class__, message_id=message_id, message=message)
 
             # Hand this off to a celery task.
             SendEmailTask.apply_async(args=[
