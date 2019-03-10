@@ -8,7 +8,7 @@ your settings.py::
 from django.conf import settings
 from django.core.mail.backends.base import BaseEmailBackend
 from seacucumber.tasks import SendEmailTask
-
+from seacucumber.signals import message_sending
 
 class SESBackend(BaseEmailBackend):
     """
@@ -31,12 +31,16 @@ class SESBackend(BaseEmailBackend):
         queue = getattr(settings, 'CUCUMBER_ROUTE_QUEUE', '')
         num_sent = 0
         for message in email_messages:
+
+            message_id = message.extra_headers.get('Message-ID', None)
+            message_sending.send(sender=self.__class__, message_id=message_id, message)
+
             # Hand this off to a celery task.
             SendEmailTask.apply_async(args=[
                     message.from_email,
                     message.recipients(),
                     message.message().as_string().decode('utf8'),
-                    message.extra_headers.get('Message-ID', None)],
+                    message_id],
                 queue=queue,
             )
             num_sent += 1
